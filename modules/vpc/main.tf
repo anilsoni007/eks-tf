@@ -8,9 +8,14 @@ module "vpc" {
   azs             = var.azs
   private_subnets = var.private_subnets
   public_subnets  = var.public_subnets
-  
-  # Create a dedicated subnet for the EKS control plane
+
+  # Create a dedicated subnet for the EKS control plane with explicit CIDRs
+  # Change this line:
   intra_subnets = [for k, v in var.azs : cidrsubnet(var.cidr_block, 8, k + 100)]
+  
+  # To this:
+  intra_subnets = ["10.0.21.0/24", "10.0.22.0/24", "10.0.23.0/24"]
+
 
   enable_nat_gateway     = var.enable_nat_gateway
   single_nat_gateway     = var.single_nat_gateway
@@ -34,14 +39,14 @@ module "vpc" {
 
   # EKS-specific tags for subnet discovery
   public_subnet_tags = {
-    "kubernetes.io/role/elb"                    = 1
+    "kubernetes.io/role/elb"                                       = 1
     "kubernetes.io/cluster/${var.project_name}-${var.environment}" = "shared"
   }
 
   private_subnet_tags = {
-    "kubernetes.io/role/internal-elb"           = 1
+    "kubernetes.io/role/internal-elb"                              = 1
     "kubernetes.io/cluster/${var.project_name}-${var.environment}" = "shared"
-    "karpenter.sh/discovery"                    = "${var.project_name}-${var.environment}"
+    "karpenter.sh/discovery"                                       = "${var.project_name}-${var.environment}"
   }
 
   tags = var.tags

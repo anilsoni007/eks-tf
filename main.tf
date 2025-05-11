@@ -14,7 +14,7 @@ provider "kubernetes" {
 
 locals {
   cluster_name = "${var.project_name}-${var.environment}"
-  
+
   tags = {
     Environment = var.environment
     Project     = var.project_name
@@ -24,35 +24,35 @@ locals {
 
 module "vpc" {
   source = "./modules/vpc"
-  
+
   project_name = var.project_name
   environment  = var.environment
   cidr_block   = var.vpc_cidr
   azs          = var.availability_zones
-  
+
   private_subnets = var.private_subnets
   public_subnets  = var.public_subnets
-  
+
   enable_nat_gateway     = true
   single_nat_gateway     = var.environment == "dev" ? true : false
   one_nat_gateway_per_az = var.environment == "prod" ? true : false
-  
+
   tags = local.tags
 }
 
 module "eks" {
   source = "./modules/eks"
-  
+
   cluster_name    = local.cluster_name
   cluster_version = var.cluster_version
-  
+
   vpc_id                   = module.vpc.vpc_id
   subnet_ids               = module.vpc.private_subnets
   control_plane_subnet_ids = module.vpc.intra_subnets
-  
+
   cluster_endpoint_private_access = true
   cluster_endpoint_public_access  = false
-  
+
   cluster_addons = {
     coredns = {
       most_recent = true
@@ -67,7 +67,7 @@ module "eks" {
       most_recent = true
     }
   }
-  
+
   # Security groups
   cluster_security_group_additional_rules = {
     bastion_access = {
@@ -79,26 +79,26 @@ module "eks" {
       type                     = "ingress"
     }
   }
-  
+
   # Node groups
   eks_managed_node_groups = {
     system = {
       name            = "system"
       use_name_prefix = true
-      
+
       subnet_ids = module.vpc.private_subnets
-      
+
       min_size     = var.system_node_group_min_size
       max_size     = var.system_node_group_max_size
       desired_size = var.system_node_group_desired_size
-      
+
       instance_types = var.system_node_group_instance_types
       capacity_type  = "ON_DEMAND"
-      
+
       labels = {
         role = "system"
       }
-      
+
       taints = [
         {
           key    = "dedicated"
@@ -106,15 +106,15 @@ module "eks" {
           effect = "NO_SCHEDULE"
         }
       ]
-      
+
       update_config = {
         max_unavailable_percentage = 33
       }
-      
+
       ebs_optimized           = true
       disable_api_termination = false
       enable_monitoring       = true
-      
+
       block_device_mappings = {
         xvda = {
           device_name = "/dev/xvda"
@@ -128,35 +128,35 @@ module "eks" {
           }
         }
       }
-      
+
       tags = local.tags
     }
-    
+
     application = {
       name            = "application"
       use_name_prefix = true
-      
+
       subnet_ids = module.vpc.private_subnets
-      
+
       min_size     = var.app_node_group_min_size
       max_size     = var.app_node_group_max_size
       desired_size = var.app_node_group_desired_size
-      
+
       instance_types = var.app_node_group_instance_types
       capacity_type  = "ON_DEMAND"
-      
+
       labels = {
         role = "application"
       }
-      
+
       update_config = {
         max_unavailable_percentage = 25
       }
-      
+
       ebs_optimized           = true
       disable_api_termination = false
       enable_monitoring       = true
-      
+
       block_device_mappings = {
         xvda = {
           device_name = "/dev/xvda"
@@ -170,14 +170,14 @@ module "eks" {
           }
         }
       }
-      
+
       tags = local.tags
     }
   }
-  
+
   # IRSA (IAM Roles for Service Accounts)
   enable_irsa = true
-  
+
   # Encryption
   cluster_encryption_config = [
     {
@@ -185,21 +185,21 @@ module "eks" {
       resources        = ["secrets"]
     }
   ]
-  
+
   tags = local.tags
 }
 
 module "bastion" {
   source = "./modules/bastion"
-  
-  name                 = "${local.cluster_name}-bastion"
-  vpc_id               = module.vpc.vpc_id
-  subnet_ids           = module.vpc.public_subnets
-  instance_type        = var.bastion_instance_type
-  key_name             = var.bastion_key_name
-  allowed_cidr_blocks  = var.bastion_allowed_cidr_blocks
-  eks_cluster_sg_id    = module.eks.cluster_security_group_id
-  
+
+  name                = "${local.cluster_name}-bastion"
+  vpc_id              = module.vpc.vpc_id
+  subnet_ids          = module.vpc.public_subnets
+  instance_type       = var.bastion_instance_type
+  key_name            = var.bastion_key_name
+  allowed_cidr_blocks = var.bastion_allowed_cidr_blocks
+  eks_cluster_sg_id   = module.eks.cluster_security_group_id
+
   tags = local.tags
 }
 
@@ -208,7 +208,7 @@ resource "aws_kms_key" "eks" {
   description             = "EKS Secret Encryption Key"
   deletion_window_in_days = 7
   enable_key_rotation     = true
-  
+
   tags = local.tags
 }
 

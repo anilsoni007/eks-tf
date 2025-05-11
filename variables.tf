@@ -34,11 +34,14 @@ variable "private_subnets" {
   default     = ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]
 }
 
+
 variable "public_subnets" {
   description = "List of public subnet CIDR blocks"
   type        = list(string)
-  default     = ["10.0.101.0/24", "10.0.102.0/24", "10.0.103.0/24"]
+  default     = ["10.0.11.0/24", "10.0.12.0/24", "10.0.13.0/24"]
 }
+
+
 
 variable "cluster_version" {
   description = "Kubernetes version to use for the EKS cluster"
