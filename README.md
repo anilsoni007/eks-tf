@@ -1,81 +1,62 @@
-# Production-Grade EKS Terraform Module
+# EKS Terraform Infrastructure
 
-This Terraform module creates a production-grade Amazon EKS cluster with secure access via a bastion host.
+This repository contains Terraform code to deploy an Amazon EKS cluster with the following components:
 
 ## Architecture
 
-The module creates the following resources:
-
-- VPC with public, private, and intra subnets across multiple availability zones
-- EKS cluster with private endpoint access
-- Managed node groups for system and application workloads
-- Bastion host for secure access to the EKS cluster
-- Security groups with least privilege access
+- VPC with public and private subnets across multiple availability zones
+- EKS cluster with private API endpoint
+- Two node groups:
+  - System node group for system components (with taints)
+  - Application node group for workloads
+- Bastion host for secure access to the cluster
 - KMS encryption for EKS secrets
-- IAM roles with proper permissions
-
-## Security Features
-
-- Private EKS API endpoint (no public access)
-- Access to EKS API only from bastion host
-- Encrypted EBS volumes for all nodes
-- IMDSv2 required on all instances
-- Encrypted secrets using KMS
-- VPC flow logs enabled
-- Least privilege security groups
-- IAM roles for service accounts (IRSA)
-- Node-to-node traffic allowed but controlled
 
 ## Prerequisites
 
-- AWS CLI configured with appropriate permissions
+- AWS CLI configured with appropriate credentials
 - Terraform v1.0.0+
-- SSH key pair for bastion host access
+- kubectl
 
 ## Usage
 
-```hcl
-module "eks" {
-  source = "./path/to/module"
-
-  region       = "us-west-2"
-  project_name = "my-project"
-  environment  = "prod"
-  
-  # Customize other variables as needed
-}
-```
-
-## Accessing the Cluster
-
-1. SSH into the bastion host:
+1. Initialize Terraform:
    ```
-   ssh -i your-key.pem ec2-user@<bastion-public-ip>
+   terraform init
    ```
 
-2. Configure kubectl:
+2. Review the plan:
+   ```
+   terraform plan
+   ```
+
+3. Apply the configuration:
+   ```
+   terraform apply
+   ```
+
+4. Configure kubectl:
    ```
    aws eks update-kubeconfig --region <region> --name <cluster-name>
    ```
 
-3. Verify access:
+5. Access the cluster via the bastion host:
    ```
-   kubectl get nodes
+   ssh -i <key-pair> ec2-user@<bastion-public-ip>
    ```
 
-## Customization
+## Important Notes
 
-You can customize the deployment by modifying the variables in `variables.tf`. Key variables include:
+- The EKS API endpoint is private by default and can only be accessed from within the VPC
+- Use the bastion host to access the cluster
+- System workloads should be scheduled on the system node group
+- Application workloads should be scheduled on the application node group
 
-- `cluster_version`: Kubernetes version
-- `node_group_*`: Node group configurations
-- `bastion_allowed_cidr_blocks`: IP ranges allowed to access the bastion host
 
-## Best Practices
 
-- Replace the default `bastion_allowed_cidr_blocks` with your specific IP ranges
-- Rotate SSH keys regularly
-- Consider implementing AWS Systems Manager Session Manager for bastion-less access
-- Enable AWS GuardDuty for threat detection
-- Implement regular security scanning of your cluster
+## Clean Up
 
+To destroy all resources:
+```
+terraform destroy
+```
